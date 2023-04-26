@@ -1,28 +1,50 @@
+MASTER_NAME = "mdailletS"
+MASTER_IP = "192.168.56.110"
+WORKER_NAME = "mdailletSW"
+WORKER_IP = "192.168.56.111"
+MEMORY = 512
+CPUS = 1
+GUI_ACTIVATED = true
+BOX = "centos/8"
+BOX_URL = "https://app.vagrantup.com/centos/boxes/8/versions/2011.0/providers/virtualbox.box"
+BOX_AUTO_UPD = false
+BOOT_TIMEOUT = 2000
+
 Vagrant.configure("2") do |config|
-    config.vm.define "mdailletS" do |mdailletS|
-        mdailletS.vm.box = "centos/8"
-        mdailletS.vm.hostname = "mdailletS"
-        mdailletS.vm.network "private_network", ip: "192.168.56.110"
-        mdailletS.vm.provider "virtualbox" do |vb|
-            vb.memory = "512"
-            vb.cpus = 1
-        end
-        mdailletS.vm.provision "shell", inline: <<-SHELL
-            curl -sfl https://get.k3s.io | sh -
-        SHELL
+    config.vm.box = BOX
+    config.vm.box_url = BOX_URL
+    config.vm.box_check_update = BOX_AUTO_UPD
+    config.vm.boot_timeout = BOOT_TIMEOUT
+    # config.vbguest.installer_options = { allow_kernel_upgrade: true }
+    config.vm.provision "shell", inline: <<-SHELL
+        sudo systemctl disable --now firewalld
+    SHELL
+    config.ssh.insert_key = false
+
+    config.vm.provider "virtualbox" do |vb|
+        vb.memory = MEMORY
+        vb.cpus = CPUS
+        vb.gui = GUI_ACTIVATED
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     end
 
-    config.vm.define "mdailletSW" do |mdailletSW|
-        mdailletSW.vm.box = "centos/8"
-        mdailletSW.vm.hostname = "mdailletSW"
-        mdailletSW.vm.network "private_network", ip: "192.168.56.111"
-        mdailletSW.vm.provider "virtualbox" do |vb|
-            vb.memory = "512"
-            vb.cpus = 1
+    config.vm.define MASTER_NAME do |m|
+        m.vm.hostname = MASTER_NAME
+        m.vm.network "private_network", ip: MASTER_IP
+        m.vm.provision "shell", privileged: true, path: "scripts/installS.sh"
+        m.vm.provider "virtualbox" do |vb|
+            vb.customize ["modifyvm", :id, "--name", MASTER_NAME]
         end
-        mdailletSW.vm.provision "shell", inline: <<-SHELL
-            curl -sfl https://get.k3s.io | K3S_URL=https://192.168.56.110:6443 K3S_TOKEN=token sh-
-        SHELL
+    end
+
+    config.vm.define WORKER_NAME do |m|
+        m.vm.hostname = WORKER_NAME
+        m.vm.network "private_network", ip: WORKER_IP
+        m.vm.provision "shell", privileged: true, path: "scripts/installS.sh"
+        m.vm.provider "virtualbox" do |vb|
+            vb.customize ["modifyvm", :id, "--name", WORKER_NAME]
+        end
     end
 
 end
