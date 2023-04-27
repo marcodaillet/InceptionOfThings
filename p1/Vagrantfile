@@ -1,0 +1,56 @@
+SERVER_NAME = "mdailletS"
+SERVER_IP = "192.168.56.110"
+WORKER_NAME = "mdailletSW"
+WORKER_IP = "192.168.56.111"
+MEMORY = 2048
+CPUS = 2
+GUI_ACTIVATED = false
+BOX = "ubuntu/focal64"
+BOX_AUTO_UPD = false
+BOOT_TIMEOUT = 2000
+
+Vagrant.configure("2") do |config|
+    config.vm.box = BOX
+    config.vm.box_check_update = BOX_AUTO_UPD
+    config.vm.boot_timeout = BOOT_TIMEOUT
+    config.ssh.insert_key = true
+
+    config.vm.provider "virtualbox" do |vb|
+        vb.memory = MEMORY
+        vb.cpus = CPUS
+        vb.gui = GUI_ACTIVATED
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    end
+
+    config.vm.define SERVER_NAME do |s|
+        s.vm.hostname = SERVER_NAME
+        s.vm.network "private_network", ip: SERVER_IP
+        s.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+        s.vm.provision "shell", inline: <<-SHELL
+            export INSTALL_K3S_EXEC="--write-kubeconfig-mode=644 --tls-san $(hostname) --node-ip 192.168.56.110 --bind-address=192.168.56.110 --advertise-address=192.168.56.110"
+            curl -sfL https://get.k3s.io |  sh -
+            sudo cat /var/lib/rancher/k3s/server/node-token > /vagrant/token
+            sudo apt-get install -y net-tools
+        SHELL
+        s.vm.provider "virtualbox" do |vb|
+            vb.customize ["modifyvm", :id, "--name", SERVER_NAME]
+        end
+    end
+
+    config.vm.define WORKER_NAME do |w|
+        w.vm.hostname = WORKER_NAME
+        w.vm.network "private_network", ip: WORKER_IP
+        w.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+        w.vm.provision "shell", inline: <<-SHELL
+            while [ ! -f /vagrant/token ]; do sleep 1; done
+            export TOKEN_FILE="/vagrant/scripts/node-token"
+            export INSTALL_K3S_EXEC="agent --server https://192.168.56.110:6443 --token-file /vagrant/token --node-ip=192.168.56.111"
+            curl -sfL https://get.k3s.io | sh -
+            sudo apt-get install -y net-tools
+        SHELL
+        w.vm.provider "virtualbox" do |vb|
+            vb.customize ["modifyvm", :id, "--name", WORKER_NAME]
+        end
+    end
+end
