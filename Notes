@@ -1,8 +1,0 @@
-Error: VERR_DISK_FULL.
-    Problem: not enough memory on the host to create a new stuff.
-    Solution: extend the host VM storage size from VirtualBox. Run 'gparted' in the VM once done and extend the partition.
-Error: VERR_VMX_NO_VMX.
-    Problem: nested VMs not allowed on machine.
-    Solution: Try to enable that option from VirtualBox app in the "Processor" options. Its the last box. If option is greyed out: run 'VboxManage modifyvm <name of vm> --nested-hm-virt on'
-
-Note: run `vagrant plugin install vagrant-vbguest` on the machine to automate some  
