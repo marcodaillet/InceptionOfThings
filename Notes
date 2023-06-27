@@ -1,0 +1,26 @@
+Error: VERR_DISK_FULL.
+    Problem: not enough memory on the host to create a new stuff.
+    Solution: extend the host VM storage size from VirtualBox. Run 'gparted' in the VM once done and extend the partition.
+Error: VERR_VMX_NO_VMX.
+    Problem: nested VMs not allowed on machine.
+    Solution: Try to enable that option from VirtualBox app in the "Processor" options. Its the last box. If option is greyed out: run 'VboxManage modifyvm <name of vm> --nested-hm-virt on'
+Error:
+    Problem: machine stuck during the boot at Authentication Failure
+    Solution:  try to remove the line vm.ssh.password = "vagrant". Somehow it worked once
+    
+List commands to run:
+vagrant up
+vagrant destroy
+vagrant status
+vagrant global-status
+vagrant ssh <machine>
+sudo kubectl get nodes
+sudo kubectl get nodes -o wide
+sudo kubetctl get all -n kube-system
+sudo kubectl get all
+sudo kubectl get all -n kube-system
+ifconfig eth1
+hostname
+curl 192.168.56.110
+curl -H "Host:app1.com" http://192.168.56.110
+curl -H "Host:app2.com" http://192.168.56.110 

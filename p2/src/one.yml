@@ -1,0 +1,40 @@
+# APP ONE
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-one
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: app-one
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-one
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-one
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: app-one
+    spec:
+      containers:
+      - image: paulbouwer/hello-kubernetes:1.7
+        name: hello-kubernetes
+        ports:
+        - containerPort: 80
+          name: web
+        env:
+        - name: MESSAGE
+          value: I am app1.
+        - name: PORT
+          value: "80"

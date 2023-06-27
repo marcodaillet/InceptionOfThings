@@ -1,0 +1,63 @@
+# Server Configuration
+SERVER_NAME = "mdailletS"
+SERVER_IP = "192.168.56.110"
+MEMORY = 2048
+CPUS = 2
+GUI_ACTIVATED = false
+
+# Box Configuration
+BOX = "ubuntu/focal64"
+BOX_AUTO_UPD = false
+BOOT_TIMEOUT = 2000
+
+Vagrant.configure("2") do |config|
+  # Box settings
+  config.vm.box = BOX
+  config.vm.box_check_update = BOX_AUTO_UPD
+  config.vm.boot_timeout = BOOT_TIMEOUT
+
+  # SSH settings
+  config.ssh.forward_agent = true
+  config.ssh.insert_key = true
+
+  # Provider settings (VirtualBox)
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = MEMORY
+    vb.cpus = CPUS
+    vb.gui = GUI_ACTIVATED
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  # Network settings
+  config.vm.network :forwarded_port, guest: 80, host: 80, guest_ip: SERVER_IP
+
+  # Shared folder
+  config.vm.synced_folder 'src', '/kubec'
+
+  # Host configuration
+  config.vm.define SERVER_NAME do |s|
+    s.vm.hostname = SERVER_NAME
+    s.vm.network "private_network", ip: SERVER_IP
+
+    # Provisioning steps
+    s.vm.provision "start-k3s-server", type: "shell", inline: <<-SHELL
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--node-ip #{SERVER_IP}" sh -
+    SHELL
+
+    s.vm.provision "wait-k3s-start", after: "start-k3s-server", type: "shell", inline: <<-SHELL
+      while [ ! -f /var/lib/rancher/k3s/server/node-token ];
+      do
+        sleep 2
+      done
+      sleep 2
+    SHELL
+
+    s.vm.provision "start-apps", after: "wait-k3s-start", type: "shell", inline: <<-SHELL
+      kubectl create -f /kubec/one.yml
+      kubectl create -f /kubec/two.yml
+      kubectl create -f /kubec/three.yml
+      kubectl apply -f /kubec/ingress.yml
+    SHELL
+  end
+end
