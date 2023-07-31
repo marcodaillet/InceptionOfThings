@@ -45,6 +45,9 @@ kubectl create namespace dev
 # Install Argo CD
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
+# Install nginx
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/baremetal/deploy.yaml
+
 # Wait for Argo CD pods to be ready
 kubectl wait --for=condition=Ready pod -n argocd -l app.kubernetes.io/name=argocd-server --timeout=300s
 
